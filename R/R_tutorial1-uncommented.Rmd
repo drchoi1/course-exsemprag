@@ -2,33 +2,33 @@
 title: "R Tutorial I: Data summary and wrangling via Tidyverse"
 author: "Sunwoo Jeong"
 date: "2020/5/19"
-output: html_document
+output: rmarkdown::github_document
 ---
 
 ## Acknowledgement
 
-This tutorial is based heavily on [Mike Frank's tutorial of Tidyverse](https://github.com/mcfrank/tidyverse-tutorial), which in turn is based on Hadley Wickham's [R for data scientists](http://r4ds.had.co.nz/). What I've mainly done is to adapt and translate the exercises in their materials so that we can work with linguistic data that we've gathered together throughout the course.
+This tutorial is based heavily on [Mike Frank's tutorial of Tidyverse](https://github.com/mcfrank/tidyverse-tutorial), which in turn is based on Hadley Wickham's [R for data scientists](http://r4ds.had.co.nz/). What I've mainly done is to adapt and translate the exercises in their materials so that we can work with linguistic data that we've gathered together throughout the course. Please access the .Rmd counterpart of this .md document and open it in R Studio to run the codes included here and try out the exercises.
 
 ```{r setup, include=FALSE}
 ## You only need to do this once
-install.packages("tidyverse")
+#install.packages("tidyverse")
 
 ## Call this in whenever you want to use associated packages such as ggplot2, tidyr, etc.
 library(tidyverse)
 
-knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
+## knitr::opts_chunk$set(echo = TRUE, cache=TRUE)
 ```
 
 <!-- ----------------------------------------------------------------------- -->
-# Goals and Introduction
+## Goals and Introduction
 
 By the end of this tutorial, you will know:
 
-+ What "tidy data" is and why it's an awesome format
++ What "tidy data" is and why we want our data to be this way
 + How to do some stuff with tidy data
 + How to get your data to be tidy (In particular, how to transform non-tidy output from IBEX/Qualtrics/etc. into tidy format)
 
-This intro will describe a few concepts that you will need to know, using the famous `iris` dataset that comes with `ggplot2`, as well as the aggregated data set from assignments 1 and 3.
+This intro will describe a few concepts that you will need to know, using the famous `iris` dataset that comes with `ggplot2`, as well as a few sample linguistic data sets.
 
 ## Data frames
 
@@ -37,26 +37,31 @@ Data frames have rows and columns, and each column has a distinct data type. The
 
 `iris` is a data frame showing the measurements of a bunch of different instances of iris flowers from different species. (Sepals are the things outside the petals of the flowers that protect the petals while it's blooming, petals are the actual petals of the flower). Let's examine how the data set looks like, using the `head` command:
 
-```{r}
+```{r, eval=FALSE}
 head(iris)
 ```
 
-> **Exercise.** There are many ways to get a particular value of a variable in a data frame. You can use `$` to access a column, as in `iris$Sepal.Length` or you can treat the data frame as a matrix, e.g. `iris[1,1]` or even as a list, as in `iris[[1]]`. You can also mix numeric references and named references, e.g. `iris[["Sepal.Length"]]`. Turn to your neighbor (and/or google) and find a way to access the petal length of the third iris in the dataset (row 3).
+**Exercise.** There are many ways to get a particular value of a variable in a data frame. You can use `$` to access a column, as in `iris$Sepal.Length` or you can treat the data frame as a matrix, e.g. `iris[1,1]` or even as a list, as in `iris[[1]]`. You can also mix numeric references and named references, e.g. `iris[["Sepal.Length"]]`. Turn to your neighbor (and/or google) and find a way to access the petal length of the third iris in the dataset (row 3).
 
 ```{r}
 # fill me in with calls to the iris dataset that all return the same cell (third from the top, Petal Length).
 
+iris$Species
+
+summary(iris$Species)
 
 ```
 
 
 Now let's take a look at some sample linguistic data. The data come from my undergrad classes: the `korean-vowels` data in particular records speaker gender/height and their F0, F1, F2, and F3 values. You can call in the data using the `read.csv` command. You don't need to set the working directory as long as the .csv and the R script/markdown file are under the same folder. If you do need to set the working directory, try using relative paths rather than absolute ones.
 
-```{r}
+```{r, eval=FALSE}
 ## load the IBEX data
 dati <- read.csv('expsemprag-ibextutorial-results-cleaned.csv')
 ## load the vowel data
 datv <- read.csv('asmt1-korean-vowels.csv')
+## load the consonants data
+datc <- read.csv('asmt1-korean-stops.csv')
 ## load the unprocessed qualtrics data
 dats <- read.csv('qualtrics-processed-sample.csv')
 
@@ -66,9 +71,11 @@ setwd("/Users/sunwoojeong/Documents/ExpLing2019/R-tutorial/")
 
 > **Exercise.** Examine what columns are in the dat dataset.
 
-```{r}
+```{r, eval=FALSE}
 # fill me in with a command that could give us an overview of the data structure of datv and datc
 
+head(datv)
+summary(datv)
 
 ```
 
@@ -82,27 +89,27 @@ And if you know that data are formatted this way, then you can do amazing things
 
 "There’s a general advantage to picking one consistent way of storing data. If you have a consistent data structure, it’s easier to learn the tools that work with it because they have an underlying uniformity. There’s a specific advantage to placing variables in columns because it allows R’s vectorised nature to shine."
 
-`iris` is a tidy dataset. Each row is an observation of an individual iris, each column is a different variable. `dat` is also a tidy dataset.
+`iris` is a tidy dataset. Each row is an observation of an individual iris, each column is a different variable. `datv` is also a tidy dataset.
 
-## Data pre-processing 
+## (A possible first step) Data pre-processing in Excel
 
 Recall our IBEX replication of the quantifier scope experiment (`dati`). Take a moment to complete it so that we can work with expanded data: [Link to the experiment](https://spellout.net/ibexexps/sunwooj/expsemprag-tutorial1/experiment.html)
 
-Take a look at the data. Is it tidy? How can we change it to make it tidy? 
+Take a look at the data. Are they tidy? How can we change them to make them tidy? 
 
-There exists many ways and many different tools to wrangle data so that it becomes tidy. (The easiest would be to design or write up an experiment so that it records the data in tidy format to begin with; this is not always easy if you are utilizing external experiment building softwares such as Qualtrics or IBEX).
+There exists many ways and many different tools to wrangle the data so that they become tidy. (The easiest would be to design or write up an experiment so that it records the data in tidy format to begin with; this is not always possible if you are utilizing external experiment building softwares such as Qualtrics or IBEX).
 
 Different people have  different preferences. Some prefer doing the bulk of the work in Excel, others mostly in R. I tend to use a little bit of both if the need arises. While this is primarily an R tutorial, here are some basic functions in Excel that might come in handy.
 
-* Data &rarr; Text to Columns &rarr; Choose the appropriate delimiter (assign a sensible delimiter during the experiment implementation phase)
-* Select column &rarr; F5 &rarr; Special &rarr; Blanks/OK &rarr; Delete/Delete Sheet Rows
+* Data -> Text to Columns -> Choose the appropriate delimiter (assign a sensible delimiter during the experiment implementation phase)
+* Select column -> F5 -> Special -> Blanks/OK -> Delete/Delete Sheet Rows
 
 
 ## Data wrangling in R
 
-`dats` (output of a qualtrics experiment) is also a comman output format that is not a tidy dataset. Let's make it tidy.
+Data like `dats` (output of a qualtrics experiment) instantiate another comman output format that is not a tidy dataset. Let's make it tidy.
 
-```{r}
+```{r, eval=FALSE}
 dats_tidy <-
   dats %>% gather(trialtype, naturalness, -subj_gender, -subj_age, -subj_comm)
 
@@ -114,7 +121,7 @@ head(dats_tidy)
 
 Everything you typically want to do in statistical programming uses **functions**. `mean` is a good example. `mean` takes one **argument**, a numeric vector. 
 
-```{r}
+```{r, eval=FALSE}
 mean(iris$Petal.Length)
 ```
 
@@ -130,6 +137,7 @@ That's not very useful yet, but when you start **nesting** functions, it gets be
 
 ```{r}
 mean(unique(iris$Petal.Length))
+
 iris$Petal.Length %>% unique() %>% mean(na.rm=TRUE)
 ```
 
@@ -137,6 +145,7 @@ or
 
 ```{r}
 round(mean(unique(iris$Petal.Length)), digits = 2)
+
 iris$Petal.Length %>% unique %>% mean %>% round(digits = 2)
 
 # indenting makes things even easier to read
@@ -150,7 +159,7 @@ This can be super helpful for writing strings of functions so that they are read
 
 We'll be doing a lot of piping of functions with multiple arguments later, and it will really help keep our syntax simple. 
 
-> **Exercise.** Rewrite these commands using pipes and check that they do the same thing! (Or at least produce the same output). Unpiped version:
+**Exercise.** Rewrite these commands using pipes and check that they do the same thing! (Or at least produce the same output). Unpiped version:
 
 ```{r}
 length(unique(iris$Species)) # number of species
@@ -163,11 +172,10 @@ Piped version:
 
 ```
 
-> **Exercise.** Using piped functions, figure out the mean of height and the mean of F1, F2. F3, and F0 from datv. Also figure out number of heights (which likely reduces to number of subjects).
+**Exercise.** Using piped functions, figure out the mean of height and the mean of F1, F2. F3, and F0 from datv. Also figure out number of heights (which likely reduces to number of subjects).
 
 ```{r}
 # fill in the piped version!
-
 
 ```
 
@@ -187,7 +195,7 @@ Let's try manipulateing our data using "verbs" from `dplyr`. We'll only take a l
 ## Exploring and characterizing the dataset
 
 Inspect the various variables before you start any analysis. You can use `summary`, or look at each variable by itself.
-```{r}
+```{r, eval=FALSE}
 summary(datv)
 
 unique(datv$word)
@@ -199,7 +207,7 @@ datv$word %>%
 
 Alternatively, you can use interactive tools like `View` 
 
-```{r}
+```{r, eval=FALSE}
 View(datv)
 ```
 
@@ -219,7 +227,7 @@ This is essentially the huge insight of `dplyr`: you can chain verbs into readab
 
 An example of filtering:
 
-```{r}
+```{r, eval=FALSE}
 datv %>%
   filter(ht > 164, 
          ht < 178) 
@@ -229,38 +237,32 @@ datv_av <-
     filter(ht > 164, 
           ht < 178) 
 ```
+
+What is it doing?
 
 An example using our IBEX results:
 
-```{r}
-datv %>%
-  filter(ht > 164, 
-         ht < 178) 
+```{r, eval=FALSE}
+## load the IBEX data which have not been cleaned yet
+dati2 <- read.csv('expsemprag-ibextutorial-results.csv')
 
-datv_av <-
-  datv %>%
-    filter(ht > 164, 
-          ht < 178) 
+## Erasing rows where the value of the 'response' column is blank
+dati2[dati2==""] <- NA
+
+dati <-
+  dati2 %>%
+  filter(is.na(response) == 0) 
+
+#Alternatively:
+dati <-
+  dati2 %>%
+  filter(response != "NA") 
 ```
 
 
-**Exercise.** Filter out only the `iso` trial in the `wpos` condition, and 2nd vowel position (2) in the `vpos` condition, and save that as a separate data frame.
+There are also times when you want to add or remove *columns*. You might want to remove columns to simplify the dataset. There's not much to simplify in `datv`, but if you wanted to do that, the verb is `select`. 
 
-```{r}
-
-
-```
-
-**Exercise.** Examine the duration column of datc. Do you notice any problems? Fix it using filtering.
-
-```{r}
-
-```
-
-
-There are also times when you want to add or remove *columns*. You might want to remove columns to simplify the dataset. There's not much to simplify here, but if you wanted to do that, the verb is `select`. 
-
-```{r}
+```{r, eval=FALSE}
 datv %>%
   select(sp, ht, word, wpos, vtype, vpos, F0) 
 
@@ -270,27 +272,40 @@ datv %>%
 # learn about this with ?select
 ```
 
+**Exercise.** Get rid of the redundant `stimuli` column in `dati`
+
+```{r, eval=FALSE}
+dati <-
+  dati %>%
+  select(-stimuli)
+```
+
 Perhaps more useful is *adding columns*. You might do this perhaps to compute some kind of derived variable. `mutate` is the verb for these situations - it allows you to add a column. Let's add a slope column to our datc dataset.
 
-```{r}
+```{r, eval=FALSE}
 datc_clean <- datc_clean %>%
   mutate(slope = (datc_clean$v1F0on - datc_clean$v2F0off)/duration)
 
 head(datc_clean$slope)
 ```
 
-```{r}
-df %>%
-mutate(food = replace(food, str_detect(food, "fruit"), "fruit")) %>% 
-group_by(food) %>% 
-summarise(sold = sum(sold))
+Let's add a new response column, `response2`, to our dataset `dati`, which keeps track of whether the participant chose the wide scope or the narrow scope interpretation.
+```{r, eval=FALSE}
+dati$response <- as.character(dati$response)
+
+dati <-
+  dati %>%
+  mutate(response = replace(response, str_detect(response, "All"), "wide")) %>% 
+  mutate(response = replace(response, str_detect(response, "Each"), "narrow"))
+
+dati$response <- as.factor(dati$response)
 ```
 
 ## Standard psychological descriptives
 
 We typically describe datasets at the level of subjects, not trials. We need two verbs to get a summary at the level of subjects: `group_by` and `summarise` (kiwi spelling). Grouping alone doesn't do much.
 
-```{r}
+```{r, eval=FALSE}
 datv %>%
   group_by(sp) 
 
@@ -307,7 +322,7 @@ Where these two verbs shine is in combination. Because `summarise` applies funct
 
 So we can group by age or condition or whatever else we want and then carry out the same procedure, and all of a sudden we are doing something extremely useful!
 
-```{r}
+```{r, eval=FALSE}
 datv_means <- datv %>%
   group_by(sp, wpos) %>%
   summarise(meanF0 = mean(F0))
@@ -316,10 +331,11 @@ datv_means
 
 These summary data are typically very useful for plotting. (To be covered in next class!)
 
-**Exercise.** Treat height as a factor and generate a summary of F0 mean according to height difference. Relate the summary back to our discussion of the Johnson reading. 
+**Exercise.** Treat height as a factor and generate a summary of F0 mean according to height difference. 
 
 ```{r}
 
 ```
 
-**Exercise.** In preparation for the next lab class, think of other summaries that may be useful in analyzing the data from assignment 1 and 3.
+
+**Exercise.** In preparation for the next lab class, think of other summaries that may be useful in analyzing the scope data from IBEX, and also the data from Jeong's factivity and prosody paper.
